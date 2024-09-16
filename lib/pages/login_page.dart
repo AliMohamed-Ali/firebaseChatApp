@@ -1,5 +1,10 @@
+import 'dart:developer';
+
+import 'package:firebase_chat_app/consts.dart';
+import 'package:firebase_chat_app/services/auth_service.dart';
 import 'package:firebase_chat_app/widgets/custom_form_field.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -9,6 +14,18 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final GlobalKey<FormState> _loginFormKey = GlobalKey<FormState>();
+  final GetIt _getIt = GetIt.instance;
+  late AuthService _authService;
+  AutovalidateMode? autovalidateMode = AutovalidateMode.disabled;
+  String? email, password;
+
+  @override
+  void initState() {
+    super.initState();
+    _authService = _getIt.get<AuthService>();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,16 +77,31 @@ class _LoginPageState extends State<LoginPage> {
         vertical: MediaQuery.sizeOf(context).height * 0.05,
       ),
       child: Form(
+        autovalidateMode: autovalidateMode!,
+        key: _loginFormKey,
         child: Column(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             CustomFormField(
+              onSaved: (val) {
+                setState(() {
+                  email = val;
+                });
+              },
+              validationRegex: EMAIL_VALIDATION_REGEX,
               hintText: "Email",
               height: MediaQuery.sizeOf(context).height * 0.1,
             ),
             CustomFormField(
+              onSaved: (val) {
+                setState(() {
+                  password = val;
+                });
+              },
+              obsecureText: true,
+              validationRegex: PASSWORD_VALIDATION_REGEX,
               height: MediaQuery.sizeOf(context).height * 0.1,
               hintText: "Password",
             ),
@@ -90,8 +122,17 @@ class _LoginPageState extends State<LoginPage> {
           foregroundColor: Colors.white,
           shape: const StadiumBorder(),
         ),
-        onPressed: () {
-          print("login");
+        onPressed: () async {
+          if (_loginFormKey.currentState!.validate()) {
+            _loginFormKey.currentState!.save();
+            bool result = await _authService.login(email!, password!);
+            log(result.toString());
+            if (result) {}
+          } else {
+            setState(() {
+              autovalidateMode = AutovalidateMode.always;
+            });
+          }
         },
         child: const Text("Login"),
       ),
